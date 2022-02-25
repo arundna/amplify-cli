@@ -56,7 +56,7 @@ test('auth logic is enabled on owner/static rules in es request', () => {
   );
   // expect response resolver to contain auth logic for group rule
   expect(out.resolvers['Query.searchComments.auth.1.req.vtl']).toContain(
-    '#set( $staticGroupRoles = [{"claim":"cognito:groups","entity":"writer"}] )',
+    '#set( $staticGroupRoles = [{"claim":"cognito:groups","entity":"writer","allowedFields":["id","content"]}] )',
   );
 });
 

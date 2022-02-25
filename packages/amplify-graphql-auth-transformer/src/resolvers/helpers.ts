@@ -45,15 +45,6 @@ export const getIdentityClaimExp = (value: Expression, defaultValueExp: Expressi
   return methodCall(ref('util.defaultIfNull'), methodCall(ref('ctx.identity.claims.get'), value), defaultValueExp);
 };
 
-// for create mutations and subscriptions
-export const addAllowedFieldsIfElse = (fieldKey: string, breakLoop: boolean = false): Expression => {
-  return ifElse(
-    not(ref(`${fieldKey}.isEmpty()`)),
-    qref(methodCall(ref(`${ALLOWED_FIELDS}.addAll`), ref(fieldKey))),
-    compoundExpression([set(ref(IS_AUTHORIZED_FLAG), bool(true)), ...(breakLoop ? [raw('#break')] : [])]),
-  );
-};
-
 // iam check
 export const iamCheck = (claim: string, exp: Expression, identityPoolId?: string) => {
   let iamExp: Expression = equals(ref('ctx.identity.userArn'), ref(`ctx.stash.${claim}`));

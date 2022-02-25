@@ -14,7 +14,7 @@ $util.qr($ctx.stash.put(\\"hasAuth\\", true))
     #end
   #end
   #if( $ctx.identity.userArn == $ctx.stash.authRole )
-    #set( $isAuthorized = true )
+    #set( $allowedFields = [\\"id\\",\\"title\\",\\"createdAt\\",\\"updatedAt\\"] )
   #end
 #end
 #if( !$isAuthorized && $allowedFields.isEmpty() )

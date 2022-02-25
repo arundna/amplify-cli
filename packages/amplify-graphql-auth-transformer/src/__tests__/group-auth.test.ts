@@ -227,9 +227,10 @@ test('dynamic group auth generates authorized fields list correctly', () => {
         #end
         #foreach( $userGroup in $groupClaim0 )
           #if( $groupEntity0.contains($userGroup) )
-            #if( !$groupAllowedFields0.isEmpty() || !$groupNullAllowedFields0.isEmpty() )
-              $util.qr($allowedFields.addAll($groupAllowedFields0))
-              $util.qr($nullAllowedFields.addAll($groupNullAllowedFields0))
+            $util.qr($allowedFields.addAll($groupAllowedFields0))
+            $util.qr($nullAllowedFields.addAll($groupNullAllowedFields0))
+            #if( $shouldBreak )
+              #break
             #end
           #end
         #end

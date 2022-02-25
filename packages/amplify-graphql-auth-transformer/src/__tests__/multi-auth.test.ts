@@ -619,9 +619,7 @@ describe('iam checks', () => {
     const out = transformer.transform(schema);
     expect(out).toBeDefined();
     const createResolver = out.resolvers['Mutation.createPost.auth.1.req.vtl'];
-    expect(createResolver).toContain(
-      `#if( ($ctx.identity.userArn == $ctx.stash.authRole) || ($ctx.identity.cognitoIdentityPoolId == \"${identityPoolId}\" && $ctx.identity.cognitoIdentityAuthType == \"authenticated\") )`,
-    );
+    expect(createResolver).toContain(`#set( $allowedFields = [\"id\",\"title\",\"createdAt\",\"updatedAt\"] )`);
     const queryResolver = out.resolvers['Query.listPosts.auth.1.req.vtl'];
     expect(queryResolver).toContain(
       `#if( ($ctx.identity.userArn == $ctx.stash.authRole) || ($ctx.identity.cognitoIdentityPoolId == \"${identityPoolId}\" && $ctx.identity.cognitoIdentityAuthType == \"authenticated\") )`,

@@ -43,13 +43,11 @@ const apiKeyExpression = (roles: Array<RoleDefinition>): Expression => {
   const expression = Array<Expression>();
   if (roles.length === 0) {
     expression.push(ref('util.unauthorized()'));
-  } else if (roles[0].allowedFields) {
+  } else {
     expression.push(
       set(ref(IS_AUTHORIZED_FLAG), bool(true)),
       qref(methodCall(ref(`${allowedAggFieldsList}.addAll`), raw(JSON.stringify(roles[0].allowedFields)))),
     );
-  } else {
-    expression.push(set(ref(IS_AUTHORIZED_FLAG), bool(true)), set(ref(allowedAggFieldsList), ref(totalFields)));
   }
   return iff(equals(ref('util.authType()'), str(API_KEY_AUTH_TYPE)), compoundExpression(expression));
 };
@@ -58,13 +56,11 @@ const lambdaExpression = (roles: Array<RoleDefinition>): Expression => {
   const expression = Array<Expression>();
   if (roles.length === 0) {
     expression.push(ref('util.unauthorized()'));
-  } else if (roles[0].allowedFields) {
+  } else {
     expression.push(
       set(ref(IS_AUTHORIZED_FLAG), bool(true)),
       qref(methodCall(ref(`${allowedAggFieldsList}.addAll`), raw(JSON.stringify(roles[0].allowedFields)))),
     );
-  } else {
-    expression.push(set(ref(IS_AUTHORIZED_FLAG), bool(true)), set(ref(allowedAggFieldsList), ref(totalFields)));
   }
   return iff(equals(ref('util.authType()'), str(LAMBDA_AUTH_TYPE)), compoundExpression(expression));
 };
@@ -85,11 +81,7 @@ const iamExpression = (
   } else {
     for (let role of roles) {
       const exp: Expression[] = [set(ref(IS_AUTHORIZED_FLAG), bool(true))];
-      if (role.allowedFields) {
-        exp.push(qref(methodCall(ref(`${allowedAggFieldsList}.addAll`), raw(JSON.stringify(role.allowedFields)))));
-      } else {
-        exp.push(set(ref(allowedAggFieldsList), ref(totalFields)));
-      }
+      exp.push(qref(methodCall(ref(`${allowedAggFieldsList}.addAll`), raw(JSON.stringify(role.allowedFields)))));
       expression.push(iff(not(ref(IS_AUTHORIZED_FLAG)), iamCheck(role.claim!, compoundExpression(exp), identityPoolId)));
     }
   }
@@ -100,13 +92,9 @@ const generateStaticRoleExpression = (roles: Array<RoleDefinition>): Array<Expre
   const staticRoleExpression: Array<Expression> = [];
   let privateRoleIdx = roles.findIndex(r => r.strategy === 'private');
   if (privateRoleIdx > -1) {
-    if (roles[privateRoleIdx].allowedFields) {
-      staticRoleExpression.push(
-        qref(methodCall(ref(`${allowedAggFieldsList}.addAll`), raw(JSON.stringify(roles[privateRoleIdx].allowedFields)))),
-      );
-    } else {
-      staticRoleExpression.push(set(ref(allowedAggFieldsList), ref(totalFields)));
-    }
+    staticRoleExpression.push(
+      qref(methodCall(ref(`${allowedAggFieldsList}.addAll`), raw(JSON.stringify(roles[privateRoleIdx].allowedFields)))),
+    );
     staticRoleExpression.push(set(ref(IS_AUTHORIZED_FLAG), bool(true)));
     roles.splice(privateRoleIdx, 1);
   }
@@ -129,11 +117,7 @@ const generateStaticRoleExpression = (roles: Array<RoleDefinition>): Array<Expre
               methodCall(ref('groupsInToken.contains'), ref('groupRole.entity')),
               compoundExpression([
                 set(ref(IS_AUTHORIZED_FLAG), bool(true)),
-                ifElse(
-                  methodCall(ref('util.isNull'), ref('groupRole.allowedFields')),
-                  compoundExpression([set(ref(allowedAggFieldsList), ref(totalFields)), raw(`#break`)]),
-                  qref(methodCall(ref(`${allowedAggFieldsList}.addAll`), ref('groupRole.allowedFields'))),
-                ),
+                qref(methodCall(ref(`${allowedAggFieldsList}.addAll`), ref('groupRole.allowedFields'))),
               ]),
             ),
           ]),
@@ -177,13 +161,11 @@ const generateAuthFilter = (
         ),
       );
       authFilter.push(ref(`owner${idx}`));
-      if (role.allowedFields) {
-        role.allowedFields.forEach(field => {
-          if (!allowedAggFields.includes(field)) {
-            aggFieldMap[field] = [...(aggFieldMap[field] ?? []), `$owner${idx}`];
-          }
-        });
-      }
+      role.allowedFields.forEach(field => {
+        if (!allowedAggFields.includes(field)) {
+          aggFieldMap[field] = [...(aggFieldMap[field] ?? []), `$owner${idx}`];
+        }
+      });
     } else if (role.strategy === 'groups') {
       filterExpression.push(
         set(
@@ -199,13 +181,11 @@ const generateAuthFilter = (
         ),
       );
       authFilter.push(ref(`group${idx}`));
-      if (role.allowedFields) {
-        role.allowedFields.forEach(field => {
-          if (!allowedAggFields.includes(field)) {
-            aggFieldMap[field] = [...(aggFieldMap[field] ?? []), `$group${idx}`];
-          }
-        });
-      }
+      role.allowedFields.forEach(field => {
+        if (!allowedAggFields.includes(field)) {
+          aggFieldMap[field] = [...(aggFieldMap[field] ?? []), `$group${idx}`];
+        }
+      });
     }
   });
   filterExpression.push(

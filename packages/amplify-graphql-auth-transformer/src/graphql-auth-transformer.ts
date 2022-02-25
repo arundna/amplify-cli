@@ -36,7 +36,6 @@ import {
   AuthTransformerConfig,
   collectFieldNames,
   ModelOperation,
-  ensureAuthRuleDefaults,
   getModelConfig,
   validateFieldRules,
   validateRules,
@@ -58,6 +57,7 @@ import {
   getPartitionKey,
   getRelationalPrimaryMap,
   getReadRolesForField,
+  getAuthDirectiveRules,
 } from './utils';
 import {
   DirectiveNode,
@@ -157,9 +157,8 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
     if (context.metadata.has('joinTypeList')) {
       isJoinType = context.metadata.get<Array<string>>('joinTypeList')!.includes(typeName);
     }
-    const authDir = new DirectiveWrapper(directive);
-    const rules: AuthRule[] = authDir.getArguments<{ rules: Array<AuthRule> }>({ rules: [] }).rules;
-    ensureAuthRuleDefaults(rules);
+    const rules: AuthRule[] = getAuthDirectiveRules(new DirectiveWrapper(directive));
+
     // validate rules
     validateRules(rules, this.configuredAuthProviders, def.name.value);
     // create access control for object
@@ -209,10 +208,9 @@ Static group authorization should perform as expected.`,
     const modelDirective = parent.directives?.find(dir => dir.name.value === 'model');
     const typeName = parent.name.value;
     const fieldName = field.name.value;
-    const authDir = new DirectiveWrapper(directive);
-    const rules: AuthRule[] = authDir.getArguments<{ rules: Array<AuthRule> }>({ rules: [] }).rules;
-    ensureAuthRuleDefaults(rules);
-    validateFieldRules(rules, isParentTypeBuiltinType, modelDirective !== undefined, this.configuredAuthProviders, field.name.value);
+    const rules: AuthRule[] = getAuthDirectiveRules(new DirectiveWrapper(directive));
+    validateFieldRules(new DirectiveWrapper(directive), isParentTypeBuiltinType, modelDirective !== undefined, field.name.value);
+    validateRules(rules, this.configuredAuthProviders, field.name.value);
 
     // regardless if a model directive is used we generate the policy for iam auth
     this.setAuthPolicyFlag(rules);
@@ -622,14 +620,10 @@ Static group authorization should perform as expected.`,
     const readRoleDefinitions = acm.getRolesPerOperation('read').map(role => {
       const allowedFields = acmFields.filter(resource => acm.isAllowed(role, resource, 'read'));
       const roleDefinition = this.roleMap.get(role)!;
-      // we add the allowed fields if the role does not have full access
-      // or if the rule is a dynamic rule (ex. ownerField, groupField)
-      if (allowedFields.length !== acmFields.length || !roleDefinition.static) {
-        roleDefinition.allowedFields = allowedFields;
-        leastAllowedFields = leastAllowedFields.filter(f => allowedFields.includes(f));
-      } else {
-        roleDefinition.allowedFields = null;
-      }
+
+      roleDefinition.allowedFields = allowedFields;
+      leastAllowedFields = leastAllowedFields.filter(f => allowedFields.includes(f));
+
       return roleDefinition;
     });
     // add readonly fields with all the fields every role has access to
@@ -717,7 +711,8 @@ Static group authorization should perform as expected.`,
       const dataStoreFields = ctx.isProjectUsingDataStore() ? ['_version', '_deleted', '_lastChangedAt'] : [];
       const allowedFields = fields.filter(resource => acm.isAllowed(role, resource, 'create'));
       const roleDefinition = this.roleMap.get(role)!;
-      roleDefinition.allowedFields = allowedFields.length === fields.length ? [] : [...allowedFields, ...dataStoreFields];
+      // TODO: add auto generated relational fields
+      roleDefinition.allowedFields = [...allowedFields, ...dataStoreFields];
       return roleDefinition;
     });
     const authExpression = generateAuthExpressionForCreate(this.configuredAuthProviders, createRoles, def.fields ?? []);
@@ -742,10 +737,11 @@ Static group authorization should perform as expected.`,
       const allowedFields = fields.filter(resource => acm.isAllowed(role, resource, 'update'));
       const nullAllowedFields = fields.filter(resource => acm.isAllowed(role, resource, 'delete'));
       const roleDefinition = this.roleMap.get(role)!;
-      roleDefinition.allowedFields = allowedFields.length === fields.length ? [] : [...allowedFields, ...dataStoreFields];
-      roleDefinition.nullAllowedFields = nullAllowedFields.length === fields.length ? [] : nullAllowedFields;
-      roleDefinition.areAllFieldsAllowed = allowedFields.length === fields.length;
-      roleDefinition.areAllFieldsNullAllowed = nullAllowedFields.length === fields.length;
+
+      // TODO: add auto generated relational fields
+      roleDefinition.allowedFields = [...allowedFields, ...dataStoreFields];
+      roleDefinition.nullAllowedFields = nullAllowedFields;
+
       return roleDefinition;
     });
     const datasource = ctx.api.host.getDataSource(`${def.name.value}Table`) as DataSourceProvider;
@@ -802,10 +798,10 @@ Static group authorization should perform as expected.`,
     authRules: AuthRule[],
     allowRoleOverwrite: boolean,
     field?: string,
-    overideOperations?: ModelOperation[],
+    overrideOperations?: ModelOperation[],
   ) {
     for (let rule of authRules) {
-      let operations: ModelOperation[] = overideOperations ? overideOperations : rule.operations || MODEL_OPERATIONS;
+      let operations: ModelOperation[] = overrideOperations ? overrideOperations : rule.operations || MODEL_OPERATIONS;
       if (rule.groups && !rule.groupsField) {
         rule.groups.forEach(group => {
           const groupClaim = rule.groupClaim || DEFAULT_GROUP_CLAIM;

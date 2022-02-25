@@ -85,11 +85,11 @@ $util.qr($ctx.stash.put(\\"hasAuth\\", true))
 #set( $isAuthorized = false )
 #set( $allowedFields = [] )
 #if( $util.authType() == \\"API Key Authorization\\" )
-  #set( $isAuthorized = true )
+  #set( $allowedFields = [\\"id\\",\\"fooID\\",\\"barID\\",\\"foo\\",\\"bar\\"] )
 #end
 #if( $util.authType() == \\"IAM Authorization\\" )
   #if( $ctx.identity.userArn == $ctx.stash.unauthRole )
-    #set( $isAuthorized = true )
+    #set( $allowedFields = [\\"id\\",\\"fooID\\",\\"barID\\",\\"foo\\",\\"bar\\"] )
   #end
 #end
 #if( !$isAuthorized && $allowedFields.isEmpty() )
@@ -271,11 +271,13 @@ $util.qr($ctx.stash.put(\\"hasAuth\\", true))
 #set( $nullAllowedFields = [] )
 #set( $deniedFields = {} )
 #if( $util.authType() == \\"API Key Authorization\\" )
-  #set( $isAuthorized = true )
+  #set( $allowedFields = [\\"id\\",\\"fooID\\",\\"barID\\",\\"foo\\",\\"bar\\"] )
+  #set( $nullAllowedFields = [\\"id\\",\\"fooID\\",\\"barID\\",\\"foo\\",\\"bar\\"] )
 #end
 #if( $util.authType() == \\"IAM Authorization\\" )
   #if( $ctx.identity.userArn == $ctx.stash.unauthRole )
-    #set( $isAuthorized = true )
+    #set( $allowedFields = [\\"id\\",\\"fooID\\",\\"barID\\",\\"foo\\",\\"bar\\"] )
+    #set( $nullAllowedFields = [\\"id\\",\\"fooID\\",\\"barID\\",\\"foo\\",\\"bar\\"] )
   #end
 #end
 #if( !$isAuthorized && $allowedFields.isEmpty() && $nullAllowedFields.isEmpty() )
@@ -551,32 +553,24 @@ $util.qr($ctx.stash.put(\\"hasAuth\\", true))
 #set( $isAuthorized = false )
 #set( $allowedFields = [] )
 #if( $util.authType() == \\"API Key Authorization\\" )
-  #set( $isAuthorized = true )
+  #set( $allowedFields = [\\"id\\",\\"fooID\\",\\"barID\\",\\"foo\\",\\"bar\\"] )
 #end
 #if( $util.authType() == \\"IAM Authorization\\" )
   #if( $ctx.identity.userArn == $ctx.stash.authRole )
-    #set( $isAuthorized = true )
+    #set( $allowedFields = [\\"id\\",\\"fooID\\",\\"barID\\",\\"foo\\",\\"bar\\"] )
   #end
 #end
 #if( $util.authType() == \\"User Pool Authorization\\" )
   #if( !$isAuthorized )
     #set( $ownerEntity0 = $util.defaultIfNull($ctx.args.input.owner, null) )
     #set( $ownerClaim0 = $util.defaultIfNull($ctx.identity.claims.get(\\"username\\"), $util.defaultIfNull($ctx.identity.claims.get(\\"cognito:username\\"), \\"___xamznone____\\")) )
-    #set( $ownerAllowedFields0 = [] )
+    #set( $ownerAllowedFields0 = [\\"id\\",\\"fooID\\",\\"barID\\",\\"foo\\",\\"bar\\"] )
     #if( $ownerClaim0 == $ownerEntity0 )
-      #if( !$ownerAllowedFields0.isEmpty() )
-        $util.qr($allowedFields.addAll($ownerAllowedFields0))
-      #else
-        #set( $isAuthorized = true )
-      #end
+      $util.qr($allowedFields.addAll($ownerAllowedFields0))
     #end
     #if( $util.isNull($ownerEntity0) && !$ctx.args.input.containsKey(\\"owner\\") )
       $util.qr($ctx.args.input.put(\\"owner\\", $ownerClaim0))
-      #if( !$ownerAllowedFields0.isEmpty() )
-        $util.qr($allowedFields.addAll($ownerAllowedFields0))
-      #else
-        #set( $isAuthorized = true )
-      #end
+      $util.qr($allowedFields.addAll($ownerAllowedFields0))
     #end
   #end
 #end
@@ -768,21 +762,27 @@ $util.qr($ctx.stash.put(\\"hasAuth\\", true))
 #set( $nullAllowedFields = [] )
 #set( $deniedFields = {} )
 #if( $util.authType() == \\"API Key Authorization\\" )
-  #set( $isAuthorized = true )
+  #set( $allowedFields = [\\"id\\",\\"fooID\\",\\"barID\\",\\"foo\\",\\"bar\\"] )
+  #set( $nullAllowedFields = [\\"id\\",\\"fooID\\",\\"barID\\",\\"foo\\",\\"bar\\"] )
 #end
 #if( $util.authType() == \\"IAM Authorization\\" )
   #if( $ctx.identity.userArn == $ctx.stash.authRole )
-    #set( $isAuthorized = true )
+    #set( $allowedFields = [\\"id\\",\\"fooID\\",\\"barID\\",\\"foo\\",\\"bar\\"] )
+    #set( $nullAllowedFields = [\\"id\\",\\"fooID\\",\\"barID\\",\\"foo\\",\\"bar\\"] )
   #end
 #end
 #if( $util.authType() == \\"User Pool Authorization\\" )
   #if( !$isAuthorized )
     #set( $ownerEntity0 = $util.defaultIfNull($ctx.result.owner, null) )
     #set( $ownerClaim0 = $util.defaultIfNull($ctx.identity.claims.get(\\"username\\"), $util.defaultIfNull($ctx.identity.claims.get(\\"cognito:username\\"), \\"___xamznone____\\")) )
-    #set( $ownerAllowedFields0 = [] )
-    #set( $ownerNullAllowedFields0 = [] )
+    #set( $ownerAllowedFields0 = [\\"id\\",\\"fooID\\",\\"barID\\",\\"foo\\",\\"bar\\"] )
+    #set( $ownerNullAllowedFields0 = [\\"id\\",\\"fooID\\",\\"barID\\",\\"foo\\",\\"bar\\"] )
     #if( $ownerEntity0 == $ownerClaim0 )
-      #set( $isAuthorized = true )
+      $util.qr($allowedFields.addAll($ownerAllowedFields0))
+      $util.qr($nullAllowedFields.addAll($ownerNullAllowedFields0))
+      #if( $shouldBreak )
+        #break
+      #end
     #end
   #end
 #end
