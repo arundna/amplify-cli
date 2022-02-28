@@ -1,5 +1,5 @@
 const messages = {
-  authExists: 'Auth has already been added to this project. To update run amplify update auth.',
+  authExists: 'Auth has already been added to this project. To view the current status, run amplify status -v. To update run amplify update auth.',
   dependenciesExists:
     '\nYou have configured resources that might depend on this Cognito resource.  Updating this Cognito resource could have unintended side effects.\n',
 };
